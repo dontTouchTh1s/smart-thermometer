@@ -92,20 +92,20 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
         display: -ms-flexbox;
         display: -moz-flex;
         display: -webkit-flex;
+        -webkit-justify-content: space-between; 
+        -moz-justify-content: space-between;
         display: flex;
+        justify-content: space-around;
         padding: 12px 0;
         width: 100%;
         margin: 0;
-        -webkit-justify-content: space-between; 
-        justify-content: space-around;
-        
-
+        list-style: none;
     }
     .header-menu ul li{
-        padding: 5px;
-        font-size: 22px;
-        cursor: pointer;
-        text-align: center;
+      padding: 5px;
+      font-size: 22px;
+      cursor: pointer;
+      text-align: center;
     }
     .container{
         height: 100%;
@@ -235,20 +235,20 @@ const char setting_html[] PROGMEM = R"rawliteral(
         display: -ms-flexbox;
         display: -moz-flex;
         display: -webkit-flex;
+        -webkit-justify-content: space-between; 
+        -moz-justify-content: space-between;
         display: flex;
+        justify-content: space-around;
         padding: 12px 0;
         width: 100%;
         margin: 0;
-        -webkit-justify-content: space-between; 
-        justify-content: space-around;
-        
-
+        list-style: none;
     }
     .header-menu ul li{
-        padding: 5px;
-        font-size: 22px;
-        cursor: pointer;
-        text-align: center;
+      padding: 5px;
+      font-size: 22px;
+      cursor: pointer;
+      text-align: center;
     }
     .container{
         height: 100%;
@@ -341,6 +341,74 @@ const char index_html[] PROGMEM = R"rawliteral(
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+  <style>
+    @font-face {
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+    html {
+    height: 100%;
+    direction: ltr;
+     font-family: Arial;
+     display: inline-block;
+     font-size: 14px;
+     font-family: 'Vazirmatn RD';
+    }
+    body{
+        height: 100%;
+        margin: 0;
+        padding:0 0;
+    }
+    h2 { 
+        font-size: 1.0rem; 
+        margin: 0;
+    }
+    p { font-size: 1.0rem; }
+    .units { font-size: 1.2rem; }
+    .dht-labels{
+      font-size: 1.5rem;
+      vertical-align:middle;
+      padding-bottom: 15px;
+    }
+    a{
+        color: rgb(39, 36, 36);
+
+        text-decoration: none;
+    }
+    .header-menu{
+        width: 100%;
+        background-color: rgb(228, 228, 228);
+    }
+    .header-menu ul{
+        display: -webkit-box;
+        display: -moz-box;
+        display: -ms-flexbox;
+        display: -moz-flex;
+        display: -webkit-flex;
+        -webkit-justify-content: space-between; 
+        -moz-justify-content: space-between;
+        display: flex;
+        justify-content: space-around;
+        padding: 12px 0;
+        margin: 0;
+        list-style: none;
+    }
+    .header-menu ul li{
+      padding: 5px;
+      font-size: 22px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .container{
+        background-color: rgb(242, 245, 248);
+        margin: 0;
+        padding: 0 8px;
+    }
+    .content{
+        padding: 8px;
+    }
+
     html {
      font-family: Arial;
      display: inline-block;
@@ -358,6 +426,15 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
+<div class="header-menu">
+      <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/setting">Settings</a></li>
+          <li><a href="/account-setting">Account Settings</a></li>
+      </ul>
+  </div>
+  <div class="container">
+    <div class="content">
   <h2>ESP8266 DHT Server</h2>
   <p>
     <span class="dht-labels">Temperature</span> 
@@ -369,7 +446,10 @@ const char index_html[] PROGMEM = R"rawliteral(
     <span id="humidity">%HUMIDITY%</span>
     <sup class="units">%</sup>
   </p>
+  </div>
+</div>
 </body>
+
 <script>
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
@@ -475,7 +555,7 @@ void setup(){
   delay(100);
   // Reading id from EEPROM
   accountId = GetEEPROM(accountSettingEEPROMAddress).toInt();
-
+  Serial.println("");
   Serial.print("Setting AP (Access Point)…");
   // Remove the password parameter, if you want the AP (Access Point) to be open
   WiFi.softAP(ssid, password);
@@ -488,7 +568,7 @@ void setup(){
   Serial.println(WiFi.localIP());
 
   String wifiSSID = GetEEPROM();
-  Serial.println("");
+  Serial.println(wifiSSID);
 
   if (wifiSSID != "")
   {
@@ -510,10 +590,10 @@ void setup(){
     request->send_P(200, "text/plain", String(h).c_str());
   });
   server.on("/setting", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/html", setting_html, processor);
+    request->send_P(200, "text/html", setting_html);
   });
   server.on("/account-setting", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/html", account_setting_html, processor);
+    request->send_P(200, "text/html", account_setting_html);
   });
   // server.on("/create-account", HTTP_GET, [](AsyncWebServerRequest *request){
   //   needRgisterAccount = true;
