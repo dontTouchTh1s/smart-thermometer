@@ -30,6 +30,7 @@ String accountUserName;
 String accountPassword;
 int accountId;
 bool needSaveAccount = false;
+bool needRgisterAccount = false;
 String serverPath = "http://broifeelhot.iapp.ir";
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -81,21 +82,26 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
 
         text-decoration: none;
     }
-    .menu{
+    .header-menu{
         width: 100%;
         background-color: rgb(228, 228, 228);
     }
-    .menu ul{
+    .header-menu ul{
+        display: -webkit-box;
+        display: -moz-box;
+        display: -ms-flexbox;
+        display: -moz-flex;
+        display: -webkit-flex;
+        display: flex;
         padding: 12px 0;
-
-        list-style: none;
         width: 100%;
         margin: 0;
-        display: flex;
+        -webkit-justify-content: space-between; 
         justify-content: space-around;
+        
 
     }
-    .menu ul li{
+    .header-menu ul li{
         padding: 5px;
         font-size: 22px;
         cursor: pointer;
@@ -150,33 +156,32 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-    <div class="menu">
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/setting">Settings</a></li>
-            <li><a href="/account-setting">Account settings</a></li>
-        </ul>
+  <div class="header-menu">
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/setting">Settings</a></li>
+      <li><a href="/account-setting">Account settings</a></li>
+    </ul>
+  </div>
+  <div class="container">
+    <div class="content">
+      <h2>User accounts settings</h2>
+      <p>Enter your account username and password to access you device over internet.</p>
+      <form method="get" action="/change-account-setting">
+        <div class="form-control">
+          <label>Username</label>
+          <input type="text" name="user-name"/>
+        </div>
+        <div class="form-control">
+          <label>Password</label>
+          <input type="password" name="password"/>
+        </div>
+        <div class="form-control">
+          <button type="submit" >Save</button>
+        </div>
+      </form>
     </div>
-    <div class="container">
-        <div class="content">
-  <h2>User accounts settings</h2>
-  <p>Enter your account username and password to access you device over internet.</p>
-  <form method="get" action="/change-account-setting">
-    <div class="form-control">
-    <label>Username</label>
-    <input type="text" name="user-name"/>
-</div>
-<div class="form-control">
-    <label>Password</label>
-    <input type="password" name="password"/>
-</div>
-<div class="form-control">
-<button type="submit" >Save</button>
-</div>
-  </form>
-  </p>
-</div>
-</div>
+  </div>
 </body>
 )rawliteral";
 
@@ -218,24 +223,28 @@ const char setting_html[] PROGMEM = R"rawliteral(
     }
     a{
         color: rgb(39, 36, 36);
-
         text-decoration: none;
     }
-    .menu{
+    .header-menu{
         width: 100%;
         background-color: rgb(228, 228, 228);
     }
-    .menu ul{
+    .header-menu ul{
+        display: -webkit-box;
+        display: -moz-box;
+        display: -ms-flexbox;
+        display: -moz-flex;
+        display: -webkit-flex;
+        display: flex;
         padding: 12px 0;
-
-        list-style: none;
         width: 100%;
         margin: 0;
-        display: flex;
+        -webkit-justify-content: space-between; 
         justify-content: space-around;
+        
 
     }
-    .menu ul li{
+    .header-menu ul li{
         padding: 5px;
         font-size: 22px;
         cursor: pointer;
@@ -296,33 +305,32 @@ const char setting_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-    <div class="menu">
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/setting">Settings</a></li>
-            <li><a href="/account-setting">Account Settings</a></li>
-        </ul>
+  <div class="header-menu">
+      <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/setting">Settings</a></li>
+          <li><a href="/account-setting">Account Settings</a></li>
+      </ul>
+  </div>
+  <div class="container">
+    <div class="content">
+      <h2>Device Settings</h2>
+      <p>Enter SSID and password of the wifi network you want device to connect at, and send data onver internet.</p>
+      <form method="get" action="/change-setting">
+        <div class="form-control">
+          <label>SSID: </label>
+          <input type="text" name="ssid"/>
+        </div>
+        <div class="form-control">
+          <label>Password</label>
+          <input type="password" name="password"/>
+        </div>
+        <div class="form-control">
+          <button type="submit" >Save</button>
+        </div>
+      </form>
     </div>
-    <div class="container">
-        <div class="content">
-  <h2>Device Settings</h2>
-  <p>Enter SSID and password of the wifi network you want device to connect at, and send data onver internet.</p>
-  <form method="get" action="/change-setting">
-    <div class="form-control">
-    <label>SSID: </label>
-    <input type="text" name="ssid"/>
-</div>
-<div class="form-control">
-    <label>Password</label>
-    <input type="password" name="password"/>
-</div>
-<div class="form-control">
-<button type="submit" >Save</button>
-</div>
-  </form>
-  </p>
-</div>
-</div>
+  </div>
 </body>
 )rawliteral";
 
@@ -507,6 +515,9 @@ void setup(){
   server.on("/account-setting", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", account_setting_html, processor);
   });
+  // server.on("/create-account", HTTP_GET, [](AsyncWebServerRequest *request){
+  //   needRgisterAccount = true;
+  // });
   server.on("/change-account-setting", HTTP_GET, [](AsyncWebServerRequest *request){
     String userName;
     String password;
@@ -611,7 +622,7 @@ void loop(){
       WiFiClient client;
       HTTPClient http;
     
-      http.begin(client, (serverPath + "/iFeelRomantical.php").c_str());
+      http.begin(client, (serverPath + "/login.php").c_str());
       // Specify content-type header
       http.addHeader("Content-Type", "application/json");
       String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
@@ -626,15 +637,45 @@ void loop(){
         Serial.println("Account setting saved successfully");
         http.end();
       }
-      else if (httpResponseCode == 409){
+      else if (httpResponseCode == 401){
         http.end();
-        Serial.println("User already exist!");
+        Serial.println("User name or password is wrong!");
       }
       else{
       http.end();
-      Serial.println("Saving changes failed!");
+      Serial.println("Not excpeting errors ...");
       }
       needSaveAccount = false;
     }
+    // if (needRgisterAccount == true)
+    // {
+    //   WiFiClient client;
+    //   HTTPClient http;
+    
+    //   http.begin(client, (serverPath + "/iFeelRomantical.php").c_str());
+    //   // Specify content-type header
+    //   http.addHeader("Content-Type", "application/json");
+    //   String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
+    //   int httpResponseCode = http.POST(json);   // Send HTTP POST request
+    //   Serial.println(httpResponseCode);
+    //   if (httpResponseCode == 200){
+    //     // Was successfull
+    //     String responseContent = http.getString().c_str();
+    //     Serial.println(responseContent);
+    //     CommitEEPROM(responseContent, accountSettingEEPROMAddress);
+    //     accountId = responseContent.toInt();
+    //     Serial.println("Account created successfully");
+    //     http.end();
+    //   }
+    //   else if (httpResponseCode == 409){
+    //     http.end();
+    //     Serial.println("User already exist!");
+    //   }
+    //   else{
+    //   http.end();
+    //   Serial.println("Saving changes failed!");
+    //   }
+    //   needRgisterAccount = false;
+    // }
   }
 }
