@@ -28,10 +28,10 @@ float t = 0.0;
 float h = 0.0;
 String accountUserName;
 String accountPassword;
-int accountId;
+int accountId = -1;
 bool needSaveAccount = false;
 bool needRgisterAccount = false;
-String serverPath = "http://broifeelhot.iapp.ir";
+String serverPath = "http://broifeelhot.iapp.ir/api";
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
@@ -114,7 +114,7 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
         padding: 0 8px;
     }
     .content{
-        padding: 8px;
+        padding: 12px;
     }
     input{
         height: 42px;
@@ -153,6 +153,7 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
         border: none;
         background-color: rgb(255, 213, 121);
     }
+
   </style>
 </head>
 <body>
@@ -178,6 +179,22 @@ const char account_setting_html[] PROGMEM = R"rawliteral(
         </div>
         <div class="form-control">
           <button type="submit" >Save</button>
+        </div>
+      </form>
+    </div>
+    <div class="content">
+      <p>If you didn't create account yet, you can create from here or our website.</p>
+      <form method="get" action="/create-account" class="m20">
+        <div class="form-control">
+          <label>Username</label>
+          <input type="text" name="user-name"/>
+        </div>
+        <div class="form-control">
+          <label>Password</label>
+          <input type="password" name="password"/>
+        </div>
+        <div class="form-control">
+          <button type="submit" >Register</button>
         </div>
       </form>
     </div>
@@ -525,20 +542,25 @@ String GetEEPROM(int address = 0) {
   String text;
   char readChar = 36;
   int i = 0 + address;
+  int att = 0;
 
   while (readChar != '\0') {
     readChar = char(EEPROM.read(i));
     i++;
+    att++;
 
     if (readChar != '\0') {
       text += readChar;
     }
+    if (att > 100)
+      return "";
   }
   EEPROM.end();
   return text;
 }
 bool GetParams(AsyncWebServerRequest *request, String paramName, String &valueOut)
 {
+    
     if (request->hasParam(paramName))
     {
         valueOut = request->getParam(paramName)->value();
@@ -554,8 +576,20 @@ void setup(){
   Serial.begin(115200);
   delay(100);
   // Reading id from EEPROM
-  accountId = GetEEPROM(accountSettingEEPROMAddress).toInt();
   Serial.println("");
+
+  String account = GetEEPROM(accountSettingEEPROMAddress);
+  if (account == "")
+  {
+    accountId = -1;
+    Serial.println("No account found!");
+  }
+  else 
+  {
+    accountId = account.toInt();
+    Serial.print("Account id: ");
+    Serial.println(accountId);
+  }
   Serial.print("Setting AP (Access Point)…");
   // Remove the password parameter, if you want the AP (Access Point) to be open
   WiFi.softAP(ssid, password);
@@ -595,9 +629,27 @@ void setup(){
   server.on("/account-setting", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", account_setting_html);
   });
-  // server.on("/create-account", HTTP_GET, [](AsyncWebServerRequest *request){
-  //   needRgisterAccount = true;
-  // });
+  server.on("/create-account", HTTP_GET, [](AsyncWebServerRequest *request){
+    String userName;
+    String password;
+    if (!GetParams(request, "user-name", userName))
+    {
+      request->redirect("/account-setting");
+      return;
+    }
+    if (!GetParams(request, "password", password))
+    {
+      request->redirect("/account-setting");
+      return;
+    }
+
+    Serial.println(userName);
+    Serial.println(password);
+    accountUserName = userName;
+    accountPassword = password;
+    needRgisterAccount = true;
+    request->redirect("/account-setting");
+   });
   server.on("/change-account-setting", HTTP_GET, [](AsyncWebServerRequest *request){
     String userName;
     String password;
@@ -683,79 +735,88 @@ void loop(){
 
     }
 
-
-    if(WiFi.status()== WL_CONNECTED){
-      Serial.println("Connected, sending data ...");
-
-      WiFiClient client;
-      HTTPClient http;
-      
-      http.begin(client, (serverPath + "/howHot.php").c_str());
-      // Specify content-type header
-      http.addHeader("Content-Type", "application/json");
-      int httpResponseCode = http.POST("{\"temperature\":\""+String(newT)+"\",\"humidity\":\""+String(newH)+"\", \"id\":"+ accountId + "}");   // Send HTTP POST request
-      Serial.println(httpResponseCode);
-      http.end();
-    }
-    if (needSaveAccount == true)
+    if(WiFi.status()== WL_CONNECTED)
     {
-      WiFiClient client;
-      HTTPClient http;
-    
-      http.begin(client, (serverPath + "/login.php").c_str());
-      // Specify content-type header
-      http.addHeader("Content-Type", "application/json");
-      String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
-      int httpResponseCode = http.POST(json);   // Send HTTP POST request
-      Serial.println(httpResponseCode);
-      if (httpResponseCode == 200){
-        // Was successfull
-        String responseContent = http.getString().c_str();
-        Serial.println(responseContent);
-        CommitEEPROM(responseContent, accountSettingEEPROMAddress);
-        accountId = responseContent.toInt();
-        Serial.println("Account setting saved successfully");
+      Serial.println("Connected, sending data ...");
+      if (accountId != -1)
+      {
+        WiFiClient client;
+        HTTPClient http;
+        
+        http.begin(client, (serverPath + "/index.php").c_str());
+        // Specify content-type header
+        http.addHeader("Content-Type", "application/json");
+        int httpResponseCode = http.POST("{\"temperature\":\""+String(newT)+"\",\"humidity\":\""+String(newH)+"\", \"id\":"+ accountId + "}");   // Send HTTP POST request
+        Serial.println(httpResponseCode);
+        if (httpResponseCode == 401){
+          Serial.println("Account not found!");
+        }
         http.end();
       }
-      else if (httpResponseCode == 401){
+      if (needSaveAccount == true)
+      {
+        WiFiClient client;
+        HTTPClient http;
+      
+        http.begin(client, (serverPath + "/login_device/index.php").c_str());
+        // Specify content-type header
+        http.addHeader("Content-Type", "application/json");
+        String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
+        int httpResponseCode = http.POST(json);   // Send HTTP POST request
+        Serial.println(httpResponseCode);
+        if (httpResponseCode == 200){
+          // Was successfull
+          String responseContent = http.getString();
+          Serial.print("Account id: ");
+          Serial.println(responseContent);
+          accountId = responseContent.toInt();
+          CommitEEPROM(responseContent.c_str(), accountSettingEEPROMAddress);
+          
+          Serial.println("Account setting saved successfully");
+          http.end();
+        }
+        else if (httpResponseCode == 401){
+          http.end();
+          Serial.println("User name or password is wrong!");
+        }
+        else{
         http.end();
-        Serial.println("User name or password is wrong!");
+        Serial.println("Not excpeting errors ...");
+        }
+        needSaveAccount = false;
       }
-      else{
-      http.end();
-      Serial.println("Not excpeting errors ...");
+      if (needRgisterAccount == true)
+      {
+        WiFiClient client;
+        HTTPClient http;
+      
+        http.begin(client, (serverPath + "/register/index.php").c_str());
+        // Specify content-type header
+        http.addHeader("Content-Type", "application/json");
+        String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
+        int httpResponseCode = http.POST(json);   // Send HTTP POST request
+        Serial.println(httpResponseCode);
+        if (httpResponseCode == 200){
+          // Was successfull 
+          String responseContent = http.getString();
+          Serial.print("Account id: ");
+          Serial.println(responseContent);
+          accountId = responseContent.toInt();
+          CommitEEPROM(responseContent.c_str(), accountSettingEEPROMAddress);
+          
+          Serial.println("Account created successfully");
+          http.end();
+        }
+        else if (httpResponseCode == 409){
+          http.end();
+          Serial.println("User already exist!");
+        }
+        else{
+          http.end();
+          Serial.println("Saving changes failed!");
+        }
+        needRgisterAccount = false;
       }
-      needSaveAccount = false;
     }
-    // if (needRgisterAccount == true)
-    // {
-    //   WiFiClient client;
-    //   HTTPClient http;
-    
-    //   http.begin(client, (serverPath + "/iFeelRomantical.php").c_str());
-    //   // Specify content-type header
-    //   http.addHeader("Content-Type", "application/json");
-    //   String json =  "{\"user-name\":\"" + accountUserName + "\",\"password\":\"" + accountPassword + "\"}";           
-    //   int httpResponseCode = http.POST(json);   // Send HTTP POST request
-    //   Serial.println(httpResponseCode);
-    //   if (httpResponseCode == 200){
-    //     // Was successfull
-    //     String responseContent = http.getString().c_str();
-    //     Serial.println(responseContent);
-    //     CommitEEPROM(responseContent, accountSettingEEPROMAddress);
-    //     accountId = responseContent.toInt();
-    //     Serial.println("Account created successfully");
-    //     http.end();
-    //   }
-    //   else if (httpResponseCode == 409){
-    //     http.end();
-    //     Serial.println("User already exist!");
-    //   }
-    //   else{
-    //   http.end();
-    //   Serial.println("Saving changes failed!");
-    //   }
-    //   needRgisterAccount = false;
-    // }
   }
 }
